@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraper</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Web Scraper</h1>
+            <button id="addProjectBtn" class="btn btn-primary">
+                <span class="icon">+</span>
+                添加项目
+            </button>
+        </header>
+
+        <div class="projects-section">
+            <h2 class="section-title">我的项目</h2>
+            <div id="projectsList" class="projects-list">
+                <!-- 项目列表将在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="current-project-section" id="currentProjectSection" style="display: none;">
+            <h2 class="section-title">当前项目</h2>
+            <div class="project-info">
+                <span id="currentProjectName" class="project-name"></span>
+                <div class="project-actions">
+                    <button id="runOnceBtn" class="btn btn-success">
+                        <span class="icon">▶</span>
+                        运行一次
+                    </button>
+                    <button id="toggleAutoBtn" class="btn btn-secondary">
+                        <span class="icon">⏸</span>
+                        自动运行
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑项目模态框 -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加新项目</h3>
+                <button id="closeModal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="projectName">项目名称</label>
+                    <input type="text" id="projectName" placeholder="输入项目名称" required>
+                </div>
+                <div class="form-group">
+                    <label for="projectDescription">项目描述</label>
+                    <textarea id="projectDescription" placeholder="输入项目描述（可选）"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="scrapingCode">采集代码</label>
+                    <textarea id="scrapingCode" placeholder="输入JavaScript代码来采集页面内容" rows="10"></textarea>
+                    <div class="code-help">
+            <p><strong>✨ 新版本：使用chrome.scripting API自动执行，完全绕过CSP限制！</strong></p>
+            <p>代码示例：</p>
+                        <pre><code>// 采集页面标题
+const title = document.title;
+
+// 采集所有链接
+const links = Array.from(document.querySelectorAll('a')).map(a => ({
+    text: a.textContent.trim(),
+    href: a.href
+}));
+
+// 采集特定元素
+const mainContent = document.querySelector('.main-content');
+const content = mainContent ? mainContent.textContent.trim() : '';
+
+// 采集图片
+const images = Array.from(document.querySelectorAll('img')).map(img => ({
+    src: img.src,
+    alt: img.alt,
+    title: img.title
+}));
+
+// 采集表格数据
+const tables = Array.from(document.querySelectorAll('table')).map(table => ({
+    headers: Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim()),
+    rows: Array.from(table.querySelectorAll('tr')).map(tr => 
+        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+    )
+}));
+
+// 返回采集的数据
+return {
+    title,
+    links,
+    content,
+    images,
+    tables,
+    timestamp: new Date().toISOString(),
+    url: document.location.href
+};</code></pre>
+                        <p><strong>更多示例：</strong></p>
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer; color: #007bff;">电商产品采集</summary>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 8px 0;"><code>// 电商产品信息采集
+const product = {
+    title: document.querySelector('.product-title')?.textContent.trim(),
+    price: document.querySelector('.price')?.textContent.trim(),
+    image: document.querySelector('.product-image img')?.src,
+    description: document.querySelector('.product-description')?.textContent.trim(),
+    rating: document.querySelector('.rating')?.textContent.trim()
+};
+
+return product;</code></pre>
+                        </details>
+                        
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer; color: #007bff;">新闻文章采集</summary>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 8px 0;"><code>// 新闻文章信息采集
+const article = {
+    headline: document.querySelector('h1.headline')?.textContent.trim(),
+    author: document.querySelector('.author-name')?.textContent.trim(),
+    publishDate: document.querySelector('.publish-date')?.textContent.trim(),
+    content: document.querySelector('.article-content')?.textContent.trim(),
+    tags: Array.from(document.querySelectorAll('.tags a')).map(tag => tag.textContent.trim())
+};
+
+return article;</code></pre>
+                        </details>
+                        
+            <p><strong>特点：</strong></p>
+            <ul>
+                <li>✅ 完全CSP兼容 - 使用chrome.scripting API绕过CSP限制</li>
+                <li>✅ 自动执行 - 无需手动复制粘贴</li>
+                <li>✅ 支持所有DOM方法 - querySelector, getElementById等</li>
+                <li>✅ 实时结果 - 执行结果自动显示在控制台</li>
+            </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveProject" class="btn btn-primary">保存项目</button>
+                <button id="cancelProject" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

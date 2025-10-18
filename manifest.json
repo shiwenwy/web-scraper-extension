@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Web Scraper Extension",
+  "version": "1.0.0",
+  "description": "一个强大的网页爬虫工具，支持自定义JS代码采集页面内容",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://open.larksuite.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Web Scraper"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["safe-scraper.js", "content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

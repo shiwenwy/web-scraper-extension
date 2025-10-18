@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Popup</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; border: none; border-radius: 4px; }
+        .btn-secondary { background: #6c757d; color: white; border: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Web Scraper 调试页面</h1>
+    
+    <div class="debug-info">
+        <h3>测试模态框功能</h3>
+        <button id="testModal">打开测试模态框</button>
+    </div>
+    
+    <div class="debug-info">
+        <h3>测试按钮事件</h3>
+        <button id="testSave">测试保存按钮</button>
+        <button id="testCancel">测试取消按钮</button>
+    </div>
+    
+    <div class="debug-info">
+        <h3>测试项目数据</h3>
+        <button id="testLoadProjects">加载项目数据</button>
+        <button id="testSaveProject">保存测试项目</button>
+    </div>
+    
+    <div id="output"></div>
+    
+    <!-- 测试模态框 -->
+    <div id="testModalDiv" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 400px;">
+            <h3>测试模态框</h3>
+            <input type="text" id="testName" placeholder="项目名称" style="width: 100%; padding: 8px; margin: 10px 0;">
+            <textarea id="testCode" placeholder="采集代码" style="width: 100%; height: 100px; padding: 8px; margin: 10px 0;"></textarea>
+            <div>
+                <button id="testSaveBtn" class="btn btn-primary">保存</button>
+                <button id="testCancelBtn" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            output.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        // 测试模态框
+        document.getElementById('testModal').addEventListener('click', () => {
+            document.getElementById('testModalDiv').style.display = 'block';
+            log('模态框已打开');
+        });
+        
+        // 测试保存按钮
+        document.getElementById('testSave').addEventListener('click', () => {
+            log('保存按钮被点击');
+        });
+        
+        // 测试取消按钮
+        document.getElementById('testCancel').addEventListener('click', () => {
+            log('取消按钮被点击');
+        });
+        
+        // 测试模态框内的按钮
+        document.getElementById('testSaveBtn').addEventListener('click', () => {
+            const name = document.getElementById('testName').value;
+            const code = document.getElementById('testCode').value;
+            log('模态框保存按钮被点击 - 名称: ' + name + ', 代码: ' + code);
+            document.getElementById('testModalDiv').style.display = 'none';
+        });
+        
+        document.getElementById('testCancelBtn').addEventListener('click', () => {
+            log('模态框取消按钮被点击');
+            document.getElementById('testModalDiv').style.display = 'none';
+        });
+        
+        // 测试Chrome存储
+        document.getElementById('testLoadProjects').addEventListener('click', async () => {
+            try {
+                const result = await chrome.storage.local.get(['projects']);
+                log('加载项目数据: ' + JSON.stringify(result));
+            } catch (error) {
+                log('加载项目数据失败: ' + error.message);
+            }
+        });
+        
+        document.getElementById('testSaveProject').addEventListener('click', async () => {
+            try {
+                const testProject = {
+                    id: Date.now().toString(),
+                    name: '测试项目',
+                    description: '这是一个测试项目',
+                    code: 'return { test: "data" };',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                await chrome.storage.local.set({ projects: [testProject] });
+                log('测试项目已保存');
+            } catch (error) {
+                log('保存测试项目失败: ' + error.message);
+            }
+        });
+        
+        log('调试页面已加载');
+    </script>
+</body>
+</html>

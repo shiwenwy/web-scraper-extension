@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成图标</title>
+</head>
+<body>
+    <h1>Web Scraper Extension 图标生成器</h1>
+    <p>请按照以下步骤生成图标：</p>
+    
+    <h2>方法1: 使用在线工具</h2>
+    <ol>
+        <li>打开 <a href="https://convertio.co/svg-png/" target="_blank">SVG转PNG在线工具</a></li>
+        <li>上传 icons/icon.svg 文件</li>
+        <li>分别生成 16x16, 48x48, 128x128 三种尺寸</li>
+        <li>保存为 icon16.png, icon48.png, icon128.png</li>
+    </ol>
+    
+    <h2>方法2: 使用代码生成</h2>
+    <p>在浏览器控制台中运行以下代码：</p>
+    <pre><code>
+// 生成图标的函数
+function generateIcon(size) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    // 创建渐变背景
+    const gradient = ctx.createLinearGradient(0, 0, size, size);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    
+    // 绘制背景圆形
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2 - 2, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // 绘制白色边框
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // 绘制蜘蛛网
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(1, size/40);
+    ctx.lineCap = 'round';
+    
+    const centerX = size/2;
+    const centerY = size/2;
+    const radius = size/2 - 8;
+    
+    // 绘制同心圆
+    for (let r = radius/3; r <= radius; r += radius/3) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+    
+    // 绘制放射线
+    for (let angle = 0; angle < 360; angle += 45) {
+        const rad = (angle * Math.PI) / 180;
+        const x = centerX + Math.cos(rad) * radius;
+        const y = centerY + Math.sin(rad) * radius;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    // 绘制中心圆
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, size/16, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    return canvas;
+}
+
+// 生成并下载图标
+function downloadIcon(size, filename) {
+    const canvas = generateIcon(size);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// 生成所有尺寸的图标
+downloadIcon(16, 'icon16.png');
+downloadIcon(48, 'icon48.png');
+downloadIcon(128, 'icon128.png');
+    </code></pre>
+    
+    <h2>方法3: 使用命令行工具</h2>
+    <p>如果安装了ImageMagick：</p>
+    <pre><code>
+# 安装ImageMagick (macOS)
+brew install imagemagick
+
+# 生成不同尺寸的图标
+convert icons/icon.svg -resize 16x16 icons/icon16.png
+convert icons/icon.svg -resize 48x48 icons/icon48.png
+convert icons/icon.svg -resize 128x128 icons/icon128.png
+    </code></pre>
+    
+    <h2>临时解决方案</h2>
+    <p>如果暂时无法生成图标，可以：</p>
+    <ol>
+        <li>从网上下载任意16x16, 48x48, 128x128的PNG图标</li>
+        <li>重命名为 icon16.png, icon48.png, icon128.png</li>
+        <li>放入 icons/ 文件夹</li>
+    </ol>
+    
+    <p>扩展仍然可以正常工作，只是图标可能不是自定义的。</p>
+</body>
+</html>
