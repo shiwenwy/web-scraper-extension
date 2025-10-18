@@ -4,6 +4,7 @@ class ProjectManager {
         this.projects = [];
         this.currentProject = null;
         this.autoRunInterval = null;
+        this.isRunning = false;
         this.init();
     }
 
@@ -287,6 +288,14 @@ class ProjectManager {
             return;
         }
 
+        // 防止重复执行
+        if (this.isRunning) {
+            console.log('⚠️ 项目正在运行中，跳过重复执行');
+            return;
+        }
+
+        this.isRunning = true;
+
         try {
             // 获取当前活动标签页
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -304,14 +313,29 @@ class ProjectManager {
                 return;
             }
 
-            // 尝试注入content script（如果还没有注入）
+            // 检查content script是否已存在
+            let contentScriptExists = false;
             try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['content.js']
-                });
-            } catch (injectError) {
-                // Content script可能已经存在，忽略错误
+                await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+                contentScriptExists = true;
+                console.log('✅ Content script已存在');
+            } catch (error) {
+                console.log('📝 Content script不存在，需要注入');
+            }
+
+            // 如果content script不存在，则注入
+            if (!contentScriptExists) {
+                try {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['content.js']
+                    });
+                    console.log('✅ Content script注入成功');
+                } catch (injectError) {
+                    console.error('❌ Content script注入失败:', injectError);
+                    this.showRunStatus('注入失败: ' + injectError.message, 'error');
+                    return;
+                }
             }
 
             // 等待一下确保content script加载完成
@@ -333,6 +357,11 @@ class ProjectManager {
             } else {
                 this.showRunStatus('运行失败: ' + error.message, 'error');
             }
+        } finally {
+            // 重置运行状态
+            setTimeout(() => {
+                this.isRunning = false;
+            }, 1000);
         }
     }
 

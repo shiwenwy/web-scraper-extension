@@ -1,12 +1,46 @@
 // Content Script - 在网页中执行爬虫代码
 console.log('Web Scraper Content Script loaded');
 
+// 防止重复注入 - 如果已经存在实例，则移除旧的监听器
+if (window.webScraperContentScript) {
+    console.log('⚠️ 检测到重复的content script，移除旧实例');
+    if (window.webScraperContentScript.messageListener) {
+        chrome.runtime.onMessage.removeListener(window.webScraperContentScript.messageListener);
+    }
+}
+
+// 创建单例实例
+window.webScraperContentScript = {
+    isRunning: false,
+    messageListener: null
+};
+
 // 监听来自popup的消息
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+window.webScraperContentScript.messageListener = (message, sender, sendResponse) => {
+    if (message.action === 'ping') {
+        // 响应ping消息，表示content script已存在
+        if (sendResponse) {
+            sendResponse({ success: true, message: 'Content script已存在' });
+        }
+        return true;
+    }
+    
     if (message.action === 'runScraping') {
+        // 防止重复执行
+        if (window.webScraperContentScript.isRunning) {
+            console.log('⚠️ 爬虫正在运行中，跳过重复执行');
+            if (sendResponse) {
+                sendResponse({ success: false, message: '正在运行中' });
+            }
+            return true;
+        }
+
         console.log('🚀 开始执行爬虫项目:', message.project.name);
         console.log('📝 项目数据:', message.project);
+        
+        window.webScraperContentScript.isRunning = true;
         runScrapingCode(message.project);
+        
         // 确保发送响应
         if (sendResponse) {
             sendResponse({ success: true });
@@ -15,7 +49,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // 返回true表示异步响应
     return true;
-});
+};
+
+// 注册消息监听器
+chrome.runtime.onMessage.addListener(window.webScraperContentScript.messageListener);
 
 /**
  * 执行爬虫代码
@@ -43,6 +80,9 @@ async function runScrapingCode(project) {
             timestamp: new Date().toISOString(),
             url: window.location.href
         });
+    } finally {
+        // 重置运行状态
+        window.webScraperContentScript.isRunning = false;
     }
 }
 
@@ -194,6 +234,7 @@ async function executeUserCode(userCode, project) {
                 if (result.type === 'sendHttpRequest') {
                     // 通过background script发送HTTP请求，避免CORS问题
                     sendHttpRequestViaBackground(result.data);
+                    return; // 只处理HTTP请求，不发送结果消息
                 }
                 
                 // 清理worker和Blob URL

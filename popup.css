@@ -191,12 +191,12 @@ body {
 
 .modal-content {
     background-color: white;
-    margin: 5% auto;
+    margin: 2% auto;
     padding: 0;
     border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
+    width: 95%;
+    max-width: 800px;
+    max-height: 95vh;
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid #e2e8f0;
@@ -260,6 +260,23 @@ body {
     border-radius: 8px;
     font-size: 14px;
     transition: border-color 0.2s ease;
+}
+
+/* 代码输入框特殊样式 */
+#scrapingCode {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 400px;
+    resize: vertical;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+#scrapingCode:focus {
+    background: white;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-group input:focus,
