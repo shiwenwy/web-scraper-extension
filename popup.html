@@ -60,6 +60,7 @@
                 <div class="form-group">
                     <label for="scrapingCode">采集代码</label>
                     <textarea id="scrapingCode" placeholder="输入JavaScript代码来采集页面内容" rows="10"></textarea>
+                </div>
                     <div class="code-help">
             <p><strong>✨ 新版本：使用chrome.scripting API自动执行，完全绕过CSP限制！</strong></p>
             <p>代码示例：</p>
@@ -91,6 +92,20 @@ const tables = Array.from(document.querySelectorAll('table')).map(table => ({
     )
 }));
 
+// 发送HTTP请求到指定URL
+await sendHttpRequest('https://api.example.com/webhook', {
+    title,
+    links,
+    content,
+    images,
+    tables,
+    timestamp: new Date().toISOString(),
+    url: document.location.href
+}, {
+    'Authorization': 'Bearer your-token',
+    'Content-Type': 'application/json'
+});
+
 // 返回采集的数据
 return {
     title,
@@ -110,8 +125,16 @@ const product = {
     price: document.querySelector('.price')?.textContent.trim(),
     image: document.querySelector('.product-image img')?.src,
     description: document.querySelector('.product-description')?.textContent.trim(),
-    rating: document.querySelector('.rating')?.textContent.trim()
+    rating: document.querySelector('.rating')?.textContent.trim(),
+    url: document.location.href,
+    timestamp: new Date().toISOString()
 };
+
+// 发送到监控API
+await sendHttpRequest('https://api.example.com/products', product, {
+    'Authorization': 'Bearer your-api-token',
+    'Content-Type': 'application/json'
+});
 
 return product;</code></pre>
                         </details>
@@ -124,8 +147,16 @@ const article = {
     author: document.querySelector('.author-name')?.textContent.trim(),
     publishDate: document.querySelector('.publish-date')?.textContent.trim(),
     content: document.querySelector('.article-content')?.textContent.trim(),
-    tags: Array.from(document.querySelectorAll('.tags a')).map(tag => tag.textContent.trim())
+    tags: Array.from(document.querySelectorAll('.tags a')).map(tag => tag.textContent.trim()),
+    url: document.location.href,
+    timestamp: new Date().toISOString()
 };
+
+// 发送到内容管理系统
+await sendHttpRequest('https://cms.example.com/articles', article, {
+    'X-API-Key': 'your-api-key',
+    'Content-Type': 'application/json'
+});
 
 return article;</code></pre>
                         </details>

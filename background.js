@@ -34,8 +34,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'updateSettings':
             updateSettings(message.settings).then(sendResponse);
             return true;
-        case 'sendToFeishu':
-            sendToFeishu(message.data).then(sendResponse);
+        case 'sendHttpRequest':
+            sendHttpRequest(message.data).then(sendResponse);
             return true;
     }
 });
@@ -49,14 +49,8 @@ function handleScrapingResult(message, sender) {
     // 保存结果到存储
     saveScrapingResult(message);
     
-    // 发送通知给popup
-    chrome.runtime.sendMessage({
-        action: 'scrapingResult',
-        projectName: message.projectName,
-        data: message.data,
-        timestamp: message.timestamp,
-        url: message.url
-    }).catch(() => {
+    // 直接转发消息给popup，不重复包装
+    chrome.runtime.sendMessage(message).catch(() => {
         // popup可能已关闭，忽略错误
     });
 }
@@ -67,14 +61,8 @@ function handleScrapingResult(message, sender) {
 function handleScrapingError(message, sender) {
     console.error('Scraping error received:', message);
     
-    // 发送错误通知给popup
-    chrome.runtime.sendMessage({
-        action: 'scrapingError',
-        projectName: message.projectName,
-        error: message.error,
-        timestamp: message.timestamp,
-        url: message.url
-    }).catch(() => {
+    // 直接转发错误消息给popup，不重复包装
+    chrome.runtime.sendMessage(message).catch(() => {
         // popup可能已关闭，忽略错误
     });
 }
@@ -191,54 +179,59 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 /**
- * 发送消息到飞书 - 通过background script避免CORS问题
+ * 发送HTTP请求 - 通过background script避免CORS问题
  * 包含重试机制和错误处理
+ * @param {Object} requestData - 请求数据
+ * @param {string} requestData.url - 请求URL
+ * @param {Object} requestData.data - 请求数据
+ * @param {Object} requestData.headers - 请求头
+ * @param {number} retryCount - 重试次数
  */
-async function sendToFeishu(data, retryCount = 0) {
-    const webhookUrl = "https://open.larksuite.com/open-apis/bot/v2/hook/243f0525-372d-46e6-96e5-cfa42974f64f";
+async function sendHttpRequest(requestData, retryCount = 0) {
+    const { url, data, headers = {} } = requestData;
     const maxRetries = 3;
     const retryDelay = 1000; // 1秒
     
-    const webhookData = {
-        msg_type: "text",
-        content: {
-            text: `🕷️ 爬虫数据采集完成\n时间: ${new Date().toISOString()}\n页面: ${data.url}\n找到 ${data.dataRowKeys.length} 个data-row-key值:\n${data.dataRowKeys.join('\n')}`
-        }
+    // 默认请求头
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        ...headers
     };
     
     try {
-        console.log(`📤 通过background script发送飞书消息... (尝试 ${retryCount + 1}/${maxRetries + 1})`);
+        console.log(`📤 通过background script发送HTTP请求... (尝试 ${retryCount + 1}/${maxRetries + 1})`);
+        console.log('请求URL:', url);
+        console.log('请求数据:', data);
+        console.log('请求头:', defaultHeaders);
         
-        const response = await fetch(webhookUrl, {
+        const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(webhookData)
+            headers: defaultHeaders,
+            body: JSON.stringify(data)
         });
         
-        console.log('📤 飞书请求已发送，状态:', response.status);
+        console.log('📤 HTTP请求已发送，状态:', response.status);
         
         if (response.ok) {
             const result = await response.text();
-            console.log('✅ 飞书消息发送成功！', result);
-            return { success: true, message: '飞书消息发送成功' };
+            console.log('✅ HTTP请求发送成功！', result);
+            return { success: true, message: 'HTTP请求发送成功', response: result };
         } else {
             const errorText = await response.text();
-            console.log('⚠️ 飞书消息发送失败，状态码:', response.status, errorText);
+            console.log('⚠️ HTTP请求发送失败，状态码:', response.status, errorText);
             
             // 如果是服务器错误且还有重试次数，则重试
             if (response.status >= 500 && retryCount < maxRetries) {
                 console.log(`🔄 服务器错误，${retryDelay}ms后重试...`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
-                return await sendToFeishu(data, retryCount + 1);
+                return await sendHttpRequest(requestData, retryCount + 1);
             }
             
-            return { success: false, message: `飞书消息发送失败，状态码: ${response.status}` };
+            return { success: false, message: `HTTP请求发送失败，状态码: ${response.status}`, response: errorText };
         }
         
     } catch (error) {
-        console.error('❌ 飞书消息发送失败:', error);
+        console.error('❌ HTTP请求发送失败:', error);
         
         // 如果是网络错误且还有重试次数，则重试
         if (retryCount < maxRetries && (
@@ -248,9 +241,9 @@ async function sendToFeishu(data, retryCount = 0) {
         )) {
             console.log(`🔄 网络错误，${retryDelay}ms后重试...`);
             await new Promise(resolve => setTimeout(resolve, retryDelay));
-            return await sendToFeishu(data, retryCount + 1);
+            return await sendHttpRequest(requestData, retryCount + 1);
         }
         
-        return { success: false, message: `飞书消息发送失败: ${error.message}` };
+        return { success: false, message: `HTTP请求发送失败: ${error.message}` };
     }
 }

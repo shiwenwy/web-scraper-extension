@@ -409,12 +409,12 @@ const projectManager = new ProjectManager();
 // 监听来自content script的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'scrapingResult') {
-        console.log('🚀 收到结果:', message.result);
+        console.log('🚀 收到结果:', message.data);
         projectManager.showRunStatus('✅ 代码执行完成', 'success');
         
         // 存储结果到当前项目
         if (projectManager.currentProject) {
-            projectManager.currentProject.lastResult = message.result;
+            projectManager.currentProject.lastResult = message.data;
             projectManager.currentProject.lastRunTime = new Date().toISOString();
             projectManager.saveProjects();
         }

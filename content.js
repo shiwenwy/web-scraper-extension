@@ -5,6 +5,7 @@ console.log('Web Scraper Content Script loaded');
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'runScraping') {
         console.log('🚀 开始执行爬虫项目:', message.project.name);
+        console.log('📝 项目数据:', message.project);
         runScrapingCode(message.project);
         // 确保发送响应
         if (sendResponse) {
@@ -23,17 +24,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function runScrapingCode(project) {
     try {
         console.log('🚀 开始执行爬虫代码:', project.code);
-        // 创建安全的执行环境
-        const result = await executeUserCode(project.code);
-        console.log('🚀 爬虫执行完成:', result);
-        // 发送结果回popup
-        chrome.runtime.sendMessage({
-            action: 'scrapingResult',
-            projectName: project.name,
-            data: result,
-            timestamp: new Date().toISOString(),
-            url: window.location.href
+        console.log('📝 项目配置详情:', {
+            name: project.name
         });
+        // 创建安全的执行环境
+        const result = await executeUserCode(project.code, project);
+        console.log('🚀 爬虫执行完成:', result);
+        // 结果已经在executeUserCode中发送，这里不需要重复发送
         
     } catch (error) {
         console.error('❌ 爬虫执行失败:', error.message);
@@ -52,12 +49,14 @@ async function runScrapingCode(project) {
 /**
  * 安全执行用户代码 - 使用Web Worker方式，绕过CSP限制
  * @param {string} userCode - 用户编写的JS代码
+ * @param {Object} project - 项目配置
  * @returns {Promise<any>} 执行结果
  */
-async function executeUserCode(userCode) {
+async function executeUserCode(userCode, project) {
     try {
         console.log('🚀 开始执行用户代码，使用Web Worker方式');
         console.log('📝 用户代码内容:', userCode);
+        console.log('📝 项目配置:', project);
         
         return new Promise((resolve, reject) => {
             // 创建内联Worker代码
@@ -130,6 +129,26 @@ async function executeUserCode(userCode) {
                                  hostname: new URL(pageData.url).hostname,
                                  pathname: new URL(pageData.url).pathname
                              }
+                         },
+                         
+                         // HTTP请求功能
+                         sendHttpRequest: function(url, data, headers = {}) {
+                             console.log('📤 用户代码请求发送HTTP请求:', { url, data, headers });
+                             
+                             // 发送消息到主线程，由主线程转发到background script
+                             self.postMessage({
+                                 type: 'sendHttpRequest',
+                                 data: {
+                                     url: url,
+                                     data: data,
+                                     headers: headers
+                                 }
+                             });
+                             
+                             return Promise.resolve({
+                                 success: true,
+                                 message: 'HTTP请求已发送'
+                             });
                          }
                      };
                     
@@ -166,13 +185,15 @@ async function executeUserCode(userCode) {
                 html: document.documentElement.outerHTML
             };
             
+            // 不再需要HTTP配置，用户直接在代码中配置
+            
             // 监听worker消息
             worker.onmessage = function(e) {
                 const result = e.data;
 
-                if (result.type === 'sendToFeishu') {
-                    // 通过background script发送到飞书，避免CORS问题
-                    sendToFeishuViaBackground(result.data.dataRowKeys, result.data.url);
+                if (result.type === 'sendHttpRequest') {
+                    // 通过background script发送HTTP请求，避免CORS问题
+                    sendHttpRequestViaBackground(result.data);
                 }
                 
                 // 清理worker和Blob URL
@@ -184,7 +205,8 @@ async function executeUserCode(userCode) {
                 // 发送结果到popup
                 chrome.runtime.sendMessage({
                     action: 'scrapingResult',
-                    result: result,
+                    projectName: project.name,
+                    data: result,
                     timestamp: new Date().toISOString(),
                     url: window.location.href
                 });
@@ -262,27 +284,25 @@ async function executeUserCode(userCode) {
 }
 
 
-// 通过background script发送飞书消息，避免CORS问题
-async function sendToFeishuViaBackground(dataRowKeys, url) {
+// 通过background script发送HTTP请求，避免CORS问题
+async function sendHttpRequestViaBackground(requestData) {
     try {
-        console.log('📤 通过background script发送飞书消息...');
+        console.log('📤 通过background script发送HTTP请求...');
+        console.log('请求数据:', requestData);
         
         const response = await chrome.runtime.sendMessage({
-            action: 'sendToFeishu',
-            data: {
-                dataRowKeys: dataRowKeys,
-                url: url
-            }
+            action: 'sendHttpRequest',
+            data: requestData
         });
         
         if (response && response.success) {
-            console.log('✅ 飞书消息发送成功！', response.message);
+            console.log('✅ HTTP请求发送成功！', response.message);
         } else {
-            console.log('⚠️ 飞书消息发送失败:', response ? response.message : '未知错误');
+            console.log('⚠️ HTTP请求发送失败:', response ? response.message : '未知错误');
         }
         
     } catch (error) {
-        console.error('❌ 飞书消息发送失败:', error);
+        console.error('❌ HTTP请求发送失败:', error);
     }
 }
 
